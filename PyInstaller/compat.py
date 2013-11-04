@@ -14,7 +14,6 @@ with previous versions of Python from 2.6 onward.
 """
 
 
-import dircache  # Module removed in Python 3
 import os
 import platform
 import subprocess
@@ -44,20 +43,32 @@ is_aix = sys.platform.startswith('aix')
 is_unix = is_linux or is_solar or is_aix
 
 
+# In Python 3 built-in function raw_input() was renamed to just 'input()'.
+try:
+    stdin_input = raw_input
+except NameError:
+    stdin_input = input
+
+
+
+# UserList class is moved to 'collections.UserList in Python 3.
+if is_py2:
+    from UserList import UserList
+else:
+    from collections import UserList
+
+# Python 2.7+ contains improved unittest module.
+# For Python 2.6 use the bundled unittest2 module.
+if is_py27 or is_py3:
+    import unittest
+else:
+    from PyInstaller.lib import unittest2 as unittest
+
 # Correct extension ending: 'c' or 'o'
 if __debug__:
     PYCO = 'c'
 else:
     PYCO = 'o'
-
-
-if 'PYTHONCASEOK' not in os.environ:
-    def caseOk(filename):
-        files = dircache.listdir(os.path.dirname(filename))
-        return os.path.basename(filename) in files
-else:
-    def caseOk(filename):
-        return True
 
 
 # Obsolete command line options (do not exist anymore).
@@ -94,7 +105,7 @@ def architecture():
         # returns "64bit" event for the 32bit version of Python's
         # universal binary. So we roll out our own (that works
         # on Darwin).
-        if sys.maxint > 2L ** 32:
+        if sys.maxsize > 2 ** 32:
             return '64bit'
         else:
             return '32bit'
@@ -173,9 +184,13 @@ def exec_command(*cmdargs):
     Wrap creating subprocesses
 
     Return stdout of the invoked command.
-    Todo: Use module `subprocess` if available, else `os.system()`
     """
-    return subprocess.Popen(cmdargs, stdout=subprocess.PIPE).communicate()[0]
+    out = subprocess.Popen(cmdargs, stdout=subprocess.PIPE).communicate()[0]
+    # Python 3 returns stdout/stderr as a byte array NOT as string.
+    # Thus we need to convert that to proper encoding.
+    # Let' suppose that stdout/stderr will contain only utf-8 or ascii
+    # characters.
+    return out.decode('utf-8')
 
 
 def exec_command_rc(*cmdargs, **kwargs):
@@ -183,7 +198,6 @@ def exec_command_rc(*cmdargs, **kwargs):
     Wrap creating subprocesses.
 
     Return exit code of the invoked command.
-    Todo: Use module `subprocess` if available, else `os.system()`
     """
     return subprocess.call(cmdargs, **kwargs)
 
@@ -198,8 +212,11 @@ def exec_command_all(*cmdargs, **kwargs):
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
     # Waits for subprocess to complete.
     out, err = proc.communicate()
-
-    return proc.returncode, out, err
+    # Python 3 returns stdout/stderr as a byte array NOT as string.
+    # Thus we need to convert that to proper encoding.
+    # Let' suppose that stdout/stderr will contain only utf-8 or ascii
+    # characters.
+    return proc.returncode, out.decode('utf-8'), err.decode('utf-8')
 
 
 def __wrap_python(args, kwargs):
@@ -260,8 +277,9 @@ def getcwd():
     characters.
     """
     cwd = os.getcwd()
-    # TODO os.getcwd should work properly with py3 on windows.
-    if is_win:
+    # os.getcwd works properly with Python 3 on Windows.
+    # We need this workaround only for Python 2 on Windows.
+    if is_win and is_py2:
         try:
             unicode(cwd)
         except UnicodeDecodeError:

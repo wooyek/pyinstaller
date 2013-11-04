@@ -20,7 +20,6 @@ import pprint
 import shutil
 import sys
 import tempfile
-import UserList
 import importlib
 from PyInstaller.loader import pyi_archive, pyi_carchive
 
@@ -46,7 +45,8 @@ logger = logging.getLogger(__name__)
 
 STRINGTYPE = type('')
 TUPLETYPE = type((None,))
-UNCOMPRESSED, COMPRESSED = range(2)
+UNCOMPRESSED = 0
+COMPRESSED = 1
 
 
 # Set of global variables that can be used while processing .spec file.
@@ -193,7 +193,7 @@ def _rmtree(path):
     if NOCONFIRM:
         choice = 'y'
     elif sys.stdout.isatty():
-        choice = raw_input('WARNING: The output directory "%s" and ALL ITS '
+        choice = compat.stdin_input('WARNING: The output directory "%s" and ALL ITS '
                            'CONTENTS will be REMOVED! Continue? (y/n)' % path)
     else:
         raise SystemExit('Error: The output directory "%s" is not empty. '
@@ -389,8 +389,7 @@ class Analysis(Target):
             ('hookspath', _check_guts_eq),
             ('excludes', _check_guts_eq),
             ('scripts', _check_guts_toc_mtime),
-            ('pure', lambda *args: apply(_check_guts_toc_mtime,
-                                              args, {'pyc': 1})),
+            ('pure', lambda *args: _check_guts_toc_mtime(*args, **{'pyc': 1})),
             ('binaries', _check_guts_toc_mtime),
             ('zipfiles', _check_guts_toc_mtime),
             ('datas', _check_guts_toc_mtime),
@@ -405,10 +404,11 @@ class Analysis(Target):
         """
         datas = []
 
-        def _visit((base, dest_dir, datas), dirname, names):
+        def _visit(xxx_todo_changeme, dirname, names):
             """
             Format whole directory tree from 'datas'.
             """
+            (base, dest_dir, datas) = xxx_todo_changeme
             for fn in names:
                 fn = os.path.join(dirname, fn)
                 if os.path.isfile(fn):
@@ -853,14 +853,14 @@ def checkCache(fnm, strip=False, upx=False, dist_nm=None):
             cmd = ["strip"] + strip_options + [cachedfile]
 
     shutil.copy2(fnm, cachedfile)
-    os.chmod(cachedfile, 0755)
+    os.chmod(cachedfile, 0o755)
 
     if pyasm and fnm.lower().endswith(".pyd"):
         # If python.exe has dependent assemblies, check for embedded manifest
         # of cached pyd file because we may need to 'fix it' for pyinstaller
         try:
             res = winmanifest.GetManifestResources(os.path.abspath(cachedfile))
-        except winresource.pywintypes.error, e:
+        except winresource.pywintypes.error as e:
             if e.args[0] == winresource.ERROR_BAD_EXE_FORMAT:
                 # Not a win32 PE file
                 pass
@@ -879,7 +879,7 @@ def checkCache(fnm, strip=False, upx=False, dist_nm=None):
                                                           str(language)])
                             manifest.parse_string(res[winmanifest.RT_MANIFEST][name][language],
                                                   False)
-                        except Exception, exc:
+                        except Exception as exc:
                             logger.error("Cannot parse manifest resource %s, "
                                          "%s from", name, language)
                             logger.error(cachedfile)
@@ -905,7 +905,7 @@ def checkCache(fnm, strip=False, upx=False, dist_nm=None):
                                     manifest.update_resources(os.path.abspath(cachedfile),
                                                               [name],
                                                               [language])
-                                except Exception, e:
+                                except Exception as e:
                                     logger.error(os.path.abspath(cachedfile))
                                     raise
 
@@ -913,7 +913,7 @@ def checkCache(fnm, strip=False, upx=False, dist_nm=None):
         try:
             logger.info("Executing - " + ' '.join(cmd))
             compat.exec_command(*cmd)
-        except OSError, e:
+        except OSError as e:
             raise SystemExit("Execution failed: %s" % e)
 
     # update cache index
@@ -925,9 +925,6 @@ def checkCache(fnm, strip=False, upx=False, dist_nm=None):
     if is_darwin:
         dylib.mac_set_relative_dylib_deps(cachedfile, dist_nm)
     return cachedfile
-
-
-UNCOMPRESSED, COMPRESSED = range(2)
 
 
 class PKG(Target):
@@ -1211,7 +1208,7 @@ class EXE(Target):
                                         self.resources):
             tmpnm = tempfile.mktemp()
             shutil.copy2(exe, tmpnm)
-            os.chmod(tmpnm, 0755)
+            os.chmod(tmpnm, 0o755)
             if self.icon:
                 icon.CopyIcons(tmpnm, self.icon)
             if self.versrsrc:
@@ -1236,7 +1233,7 @@ class EXE(Target):
                                                         [restype or "*"],
                                                         [resname or "*"],
                                                         [reslang or "*"])
-                except winresource.pywintypes.error, exc:
+                except winresource.pywintypes.error as exc:
                     if exc.args[0] != winresource.ERROR_BAD_EXE_FORMAT:
                         logger.exception(exc)
                         continue
@@ -1254,7 +1251,7 @@ class EXE(Target):
                                                              restype,
                                                              [resname],
                                                              [reslang or 0])
-                    except winresource.pywintypes.error, exc:
+                    except winresource.pywintypes.error as exc:
                         logger.exception(exc)
             trash.append(tmpnm)
             exe = tmpnm
@@ -1267,7 +1264,7 @@ class EXE(Target):
             logger.info("Copying archive to %s", self.pkgname)
             shutil.copy2(self.pkg.name, self.pkgname)
         outf.close()
-        os.chmod(self.name, 0755)
+        os.chmod(self.name, 0o755)
         guts = (self.name, self.console, self.debug, self.icon,
                 self.versrsrc, self.resources, self.strip, self.upx,
                 misc.mtime(self.name))
@@ -1301,7 +1298,7 @@ class DLL(EXE):
         self.copy(dll, outf)
         self.copy(self.pkg.name, outf)
         outf.close()
-        os.chmod(self.name, 0755)
+        os.chmod(self.name, 0o755)
         _save_data(self.out,
                    (self.name, self.console, self.debug, self.icon,
                     self.versrsrc, self.manifest, self.resources, self.strip, self.upx, misc.mtime(self.name)))
@@ -1391,7 +1388,7 @@ class COLLECT(Target):
             if typ != 'DEPENDENCY':
                 shutil.copy2(fnm, tofnm)
             if typ in ('EXTENSION', 'BINARY'):
-                os.chmod(tofnm, 0755)
+                os.chmod(tofnm, 0o755)
         _save_data(self.out,
                  (self.name, self.strip_binaries, self.upx_binaries, self.toc))
         return 1
@@ -1534,7 +1531,7 @@ class BUNDLE(Target):
         return 1
 
 
-class TOC(UserList.UserList):
+class TOC(compat.UserList):
     """
     TOC (Table of Contents) class is a list of tuples of the form (name, path, tytecode).
 
@@ -1553,7 +1550,7 @@ class TOC(UserList.UserList):
     PyInstaller uses TOC data type to collect necessary files bundle them into an executable.
     """
     def __init__(self, initlist=None):
-        UserList.UserList.__init__(self)
+        compat.UserList.__init__(self)
         self.fltr = {}
         if initlist:
             for tpl in initlist:
@@ -1890,7 +1887,7 @@ class MERGE(object):
         """
         for toc in (analysis.binaries, analysis.datas):
             for i, tpl in enumerate(toc):
-                if not tpl[1] in self._dependencies.keys():
+                if not tpl[1] in self._dependencies:
                     logger.debug("Adding dependency %s located in %s" % (tpl[1], path))
                     self._dependencies[tpl[1]] = path
                 else:
@@ -1975,7 +1972,7 @@ def build(spec, distpath, workpath, clean_build):
  
     # Executing the specfile. The executed .spec file will use DISTPATH and
     # WORKPATH values.
-    execfile(spec)
+    exec(compile(open(spec).read(), spec, 'exec'))
 
 
 def __add_options(parser):

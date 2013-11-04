@@ -50,7 +50,7 @@ if is_win:
 
     try:
         from PyInstaller.utils.winmanifest import winresource
-    except ImportError, detail:
+    except ImportError as detail:
         winresource = None
 
 
@@ -241,7 +241,7 @@ def check_extract_from_egg(pth, todir=None):
                 # eggs can also be directories!
                 try:
                     egg = zipfile.ZipFile(eggpth)
-                except zipfile.BadZipfile, e:
+                except zipfile.BadZipfile as e:
                     raise SystemExit("Error: %s %s" % (eggpth, e))
                 if todir is None:
                     # Use the same directory as setuptools/pkg_resources. So,
@@ -287,7 +287,7 @@ def getAssemblies(pth):
         # check the binary for embedded manifest
         try:
             res = GetManifestResources(pth)
-        except winresource.pywintypes.error, exc:
+        except winresource.pywintypes.error as exc:
             if exc.args[0] == winresource.ERROR_BAD_EXE_FORMAT:
                 logger.info('Cannot get manifest resource from non-PE '
                             'file %s', pth)
@@ -304,7 +304,7 @@ def getAssemblies(pth):
                                                   str(name), str(language)])
                     manifest.parse_string(res[RT_MANIFEST][name][language],
                                           False)
-                except Exception, exc:
+                except Exception as exc:
                     logger.error("Can not parse manifest resource %s, %s"
                                  "from %s", name, language, pth)
                     logger.exception(exc)
@@ -566,7 +566,7 @@ def getImports(pth):
             return []
         try:
             return _getImports_pe(pth)
-        except Exception, exception:
+        except Exception as exception:
             # Assemblies can pull in files which aren't necessarily PE,
             # but are still needed by the assembly. Any additional binary
             # dependencies should already have been handled by
@@ -696,7 +696,8 @@ def get_python_library_path():
         names = ('libpython%d.%d.a' % pyver,)
     elif is_unix:
         # Other *nix platforms.
-        names = ('libpython%d.%d.so.1.0' % pyver,)
+        # Python 3 .so library on Linux looks like: 'libpython3.3m.so.1.0'
+        names = ('libpython%d.%d*.so.1.0' % pyver,)
     else:
         raise SystemExit('Your platform is not yet supported.')
 

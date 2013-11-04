@@ -43,9 +43,8 @@ else:
 from PyInstaller import HOMEPATH
 from PyInstaller import compat, configure
 from PyInstaller import main as pyi_main
-from PyInstaller.compat import is_py33, is_win, is_darwin
+from PyInstaller.compat import is_py33, is_win, is_darwin, unittest
 from PyInstaller.hooks import hookutils
-from PyInstaller.lib import unittest2 as unittest
 from PyInstaller.lib import junitxml
 from PyInstaller.utils import misc, winutils
 
@@ -272,7 +271,7 @@ class BuildTestRunner(object):
         Important text. Print it to console only in verbose mode.
         """
         if self.verbose:
-        # This allows to redirect stdout to junit xml report.
+            # This allows to redirect stdout to junit xml report.
             sys.stdout.write('\n' + 10 * '#' + ' ' + text + ' ' + 10 * '#' + '\n\n')
             sys.stdout.flush()
 
@@ -325,7 +324,7 @@ class BuildTestRunner(object):
             return 1
         else:
             self._plain_msg("RUNNING: " + prog)
-            old_wd = os.getcwd()
+            old_wd = compat.getcwd()
             os.chdir(os.path.dirname(prog))
             # Run executable.
             prog = os.path.join(os.curdir, os.path.basename(prog))
@@ -333,12 +332,11 @@ class BuildTestRunner(object):
             # Prints stdout of subprocess continuously.
             self._msg('STDOUT %s' % self.test_name)
             while proc.poll() is None:
-                #line = proc.stdout.readline().strip()
                 line = proc.stdout.read(1)
-                self._plain_msg(line, newline=False)
+                self._plain_msg(line.decode('utf-8'), newline=False)
             # Print possible stderr at the end.
             self._msg('STDERR %s' % self.test_name)
-            self._plain_msg(proc.stderr.read())
+            self._plain_msg(proc.stderr.read().decode('utf-8'))
             compat.setenv("PATH", path)
             # Restore current working directory
             os.chdir(old_wd)
@@ -357,9 +355,9 @@ class BuildTestRunner(object):
 
         Return True if build succeded False otherwise.
         """
-        OPTS = ['--debug', '--noupx', '--specpath', os.getcwd(), '--distpath',
-                os.path.join(os.getcwd(), 'dist'), '--workpath',
-                os.path.join(os.getcwd(), 'build')]
+        OPTS = ['--debug', '--noupx', '--specpath', compat.getcwd(), '--distpath',
+                os.path.join(compat.getcwd(), 'dist'), '--workpath',
+                os.path.join(compat.getcwd(), 'build')]
 
         if self.verbose:
             OPTS.extend(['--debug', '--log-level=INFO'])
@@ -477,7 +475,7 @@ class GenericTestCase(unittest.TestCase):
         super(GenericTestCase, self).__init__(func_name)
 
         # For tests current working directory has to be changed temporaly.
-        self.curr_workdir = os.getcwdu()
+        self.curr_workdir = compat.getcwd()
 
     def setUp(self):
         testdir = os.path.dirname(self.test_name)
@@ -632,8 +630,8 @@ def clean():
                         shutil.rmtree(pth)
                     else:
                         os.remove(pth)
-                except OSError, e:
-                    print e
+                except OSError as e:
+                    print(e)
         # Delete *.spec files for tests without spec file.
         for pth in glob.glob(os.path.join(directory, '*.spec')):
             test_name = directory + '/' + os.path.splitext(os.path.basename(pth))[0]
@@ -647,7 +645,7 @@ def run_tests(test_suite, xml_file):
     Run test suite and save output to junit xml file if requested.
     """
     if xml_file:
-        print 'Writting test results to: %s' % xml_file
+        print('Writting test results to: %s' % xml_file)
         fp = open('report.xml', 'w')
         result = junitxml.JUnitXmlResult(fp)
         # Text from stdout/stderr should be added to failed test cases.
@@ -706,15 +704,15 @@ def main():
                 test_dir = os.path.dirname(t)
                 test_script = os.path.basename(os.path.splitext(t)[0])
                 suite.addTest(GenericTestCase(test_dir, test_script))
-                print 'Running test:  %s' % (test_dir + '/' + test_script)
+                print('Running test:  %s' % (test_dir + '/' + test_script))
 
     # Run all tests or all interactive tests.
     else:
         if opts.interactive_tests:
-            print 'Running interactive tests...'
+            print('Running interactive tests...')
             test_classes = [InteractiveTestCase]
         else:
-            print 'Running normal tests (-i for interactive tests)...'
+            print('Running normal tests (-i for interactive tests)...')
             test_classes = [BasicTestCase, ImportTestCase,
                     LibrariesTestCase, MultipackageTestCase]
 

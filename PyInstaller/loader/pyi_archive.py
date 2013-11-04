@@ -39,7 +39,7 @@ def debug(msg):
         sys.stderr.flush()
 
 
-_c_suffixes = filter(lambda x: x[2] == imp.C_EXTENSION, imp.get_suffixes())
+_c_suffixes = [x for x in imp.get_suffixes() if x[2] == imp.C_EXTENSION]
 
 for nm in ('nt', 'posix'):
     if nm in sys.builtin_module_names:
@@ -67,7 +67,7 @@ class Archive(object):
       extract('a.__init__')
       extract('a.b')
     """
-    MAGIC = 'PYL\0'
+    MAGIC = b'PYL\0'
     HDRLEN = 12  # default is MAGIC followed by python's magic, int pos of toc
     TOCPOS = 8
     TOCTMPLT = {}
@@ -155,7 +155,7 @@ class Archive(object):
         Default implementation assumes self.toc is a dict like object.
         Not required by ArchiveImporter.
         """
-        return self.toc.keys()
+        return list(self.toc.keys())
 
     ########################################################################
     # Building
@@ -172,7 +172,7 @@ class Archive(object):
         self.lib = open(path, 'wb')
         # Reserve space for the header.
         if self.HDRLEN:
-            self.lib.write('\0' * self.HDRLEN)
+            self.lib.write(b'\0' * self.HDRLEN)
 
         # Create an empty table of contents.
         if type(self.TOCTMPLT) == type({}):
@@ -262,7 +262,7 @@ class ZlibArchive(Archive):
 
     This archive is used for bundling python modules inside the executable.
     """
-    MAGIC = 'PYZ\0'
+    MAGIC = b'PYZ\0'
     TOCPOS = 8
     HDRLEN = Archive.HDRLEN + 5
     TOCTMPLT = {}
