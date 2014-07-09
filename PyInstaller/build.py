@@ -1084,9 +1084,10 @@ class PKG(Target):
                     # Avoid importing the same binary extension twice. This might
                     # happen if they come from different sources (eg. once from
                     # binary dependence, and once from direct import).
-                    if typ == 'BINARY' and fnm in seen:
+                    # bul allow to put binaries in different places on the dest folder structure
+                    if typ == 'BINARY' and inm in seen:
                         continue
-                    seen[fnm] = 1
+                    seen[inm] = 1
 
                     mytoc.append((inm, fnm, self.cdict.get(typ, 0),
                                   self.xformdict.get(typ, 'b')))
