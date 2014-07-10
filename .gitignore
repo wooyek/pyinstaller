@@ -77,3 +77,5 @@
 # /support/loader/
 /support/loader/run
 /support/loader/run_d
+.pve/
+.idea/
