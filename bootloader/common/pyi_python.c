@@ -37,6 +37,7 @@ DECLVAR(Py_FrozenFlag);
 DECLVAR(Py_NoSiteFlag);
 DECLVAR(Py_OptimizeFlag);
 DECLVAR(Py_VerboseFlag);
+DECLVAR(Py_FileSystemDefaultEncoding);
 DECLPROC(Py_Initialize);
 DECLPROC(Py_Finalize);
 DECLPROC(Py_IncRef);
@@ -84,6 +85,7 @@ int pyi_python_map_names(HMODULE dll, int pyvers)
     GETVAR(dll, Py_NoSiteFlag);
     GETVAR(dll, Py_OptimizeFlag);
     GETVAR(dll, Py_VerboseFlag);
+    GETVAR(dll, Py_FileSystemDefaultEncoding);
     GETPROC(dll, Py_Initialize);
     GETPROC(dll, Py_Finalize);
     GETPROCOPT(dll, Py_IncRef);
