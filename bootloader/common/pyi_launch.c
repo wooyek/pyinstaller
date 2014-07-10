@@ -24,8 +24,6 @@
 #else
     #include <limits.h>  // PATH_MAX
 #endif
-#include <locale.h>
-#include <langinfo.h>
 #include <stdarg.h>
 #include <stddef.h>  // ptrdiff_t
 #include <stdio.h>  // vsnprintf
@@ -452,16 +450,6 @@ int pyi_launch_execute(ARCHIVE_STATUS *status, int argc, char *argv[])
 	if (pyi_pylib_install_zlibs(status))
 		return -1;
 
-    if (!*PI_Py_FileSystemDefaultEncoding) {
-        char *saved_locale, *loc_codeset;
-        saved_locale = strdup(setlocale(LC_CTYPE, NULL));
-        setlocale(LC_CTYPE, "");
-        loc_codeset = nl_langinfo(CODESET);
-        setlocale(LC_CTYPE, saved_locale);
-        free(saved_locale);
-        *PI_Py_FileSystemDefaultEncoding = loc_codeset;
-    }
-    
 	/* Run scripts */
 	rc = pyi_pylib_run_scripts(status);
 

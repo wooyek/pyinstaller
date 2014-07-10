@@ -77,7 +77,6 @@ EXTDECLVAR(int, Py_FrozenFlag);
 EXTDECLVAR(int, Py_NoSiteFlag);
 EXTDECLVAR(int, Py_OptimizeFlag);
 EXTDECLVAR(int, Py_VerboseFlag);
-EXTDECLVAR(const char*, Py_FileSystemDefaultEncoding);
 EXTDECLPROC(int, Py_Initialize, (void));
 EXTDECLPROC(int, Py_Finalize, (void));
 EXTDECLPROC(void, Py_IncRef, (PyObject *));
